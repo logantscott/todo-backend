@@ -42,7 +42,8 @@ app.get('/todos', async(req, res, next) => {
         const result = await client.query(`
             SELECT
                 *
-            FROM todos;
+            FROM todos
+            ORDER BY id;
         `);
 
         res.json(result.rows);
