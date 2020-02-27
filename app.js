@@ -1,17 +1,13 @@
 // Load Environment Variables from the .env file
-require('dotenv').config();
-
+const client = require('./lib/client.js');
 // Application Dependencies
 const express = require('express');
 // (add cors, pg, and morgan...)
 const cors = require('cors');
-const pg = require('pg');
 const morgan = require('morgan');
 
 // Database Client
 // (create and connect using DATABASE_URL)
-const Client = pg.Client;
-const client = new Client(process.env.DATABASE_URL);
 client.connect();
 
 // Application Setup
@@ -25,6 +21,37 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(cors());
 
+// Auth Routes
+const createAuthRoutes = require('./lib/auth/create-auth-routes');
+
+const authRoutes = createAuthRoutes({
+    selectUser(email) {
+        return client.query(`
+            SELECT id, name, email, hash 
+            FROM users
+            WHERE email = $1;
+        `,
+        [email]
+        ).then(result => result.rows[0]);
+    },
+    insertUser(user, hash) {
+        return client.query(`
+            INSERT into users (name, email, hash)
+            VALUES ($1, $2, $3)
+            RETURNING id, name, email;
+        `,
+        [user.email, hash]
+        ).then(result => result.rows[0]);
+    }
+});
+
+// before ensure auth, but after other middleware:
+app.use('/api/auth', authRoutes);
+
+// for every route, on every request, make sure there is a token
+const ensureAuth = require('./lib/auth/ensure-auth');
+
+app.use('/api', ensureAuth);
 
 // API Routes
 app.get('/', async(req, res, next) => {
