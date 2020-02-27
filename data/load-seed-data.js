@@ -14,7 +14,7 @@ async function run() {
             INSERT INTO users (name, email, hash)
             VALUES ($1, $2, $3);
         `,
-        ['alchemy person', 'sky@bagel.com', 'supersecretpasswordhash']);
+        ['logan', 'sky@bagel.com', '$2a$08$H1IH1MHdd.pJaoCxttuh2.KDVgleHZC9gB6gR8jg0Iyd7NV3Y6zPm']);
 
         await Promise.all(
             todos.map(todo => {

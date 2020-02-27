@@ -40,7 +40,7 @@ const authRoutes = createAuthRoutes({
             VALUES ($1, $2, $3)
             RETURNING id, name, email;
         `,
-        [user.email, hash]
+        [user.name, user.email, hash]
         ).then(result => result.rows[0]);
     }
 });
@@ -64,14 +64,14 @@ app.get('/', async(req, res, next) => {
     }
 });
 
-app.get('/todos', async(req, res, next) => {
+app.get('/users', async(req, res, next) => {
     try {
         const result = await client.query(`
             SELECT
                 *
-            FROM todos
+            FROM users
             ORDER BY id;
-        `);
+        `,);
 
         res.json(result.rows);
     } catch (err) {
@@ -79,7 +79,24 @@ app.get('/todos', async(req, res, next) => {
     }
 });
 
-app.post('/todos', async(req, res, next) => {
+app.get('/api/todos', async(req, res, next) => {
+    try {
+        const result = await client.query(`
+            SELECT
+                *
+            FROM todos
+            WHERE user_id = $1
+            ORDER BY id;
+        `,
+        [req.userId]);
+
+        res.json(result.rows);
+    } catch (err) {
+        next(err);
+    }
+});
+
+app.post('/api/todos', async(req, res, next) => {
     try {
         const result = await client.query(`
         INSERT INTO todos (task, complete)
@@ -94,15 +111,16 @@ app.post('/todos', async(req, res, next) => {
     }
 });
 
-app.put('/todos', async(req, res, next) => {
+app.put('/api/todos', async(req, res, next) => {
     try {
         const result = await client.query(`
         UPDATE todos
         SET complete = $1
         WHERE todos.id = $2
+            AND user_id = $3
         RETURNING *;
         `,
-        [req.body.complete, req.body.id]);
+        [req.body.complete, req.body.id, req.userId]);
 
         res.json(result.rows[0]);
     } catch (err) {
@@ -110,14 +128,15 @@ app.put('/todos', async(req, res, next) => {
     }
 });
 
-app.delete('/todos', async(req, res, next) => {
+app.delete('/api/todos', async(req, res, next) => {
     try {
         const result = await client.query(`
         DELETE FROM todos
         WHERE todos.id = $1
+            AND user_id = $2
         RETURNING *;
         `,
-        [req.body.id]);
+        [req.body.id, req.userId]);
 
         res.json(result.rows[0]);
     } catch (err) {
